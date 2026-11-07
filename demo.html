@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pashto Pair Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<script src="js/scenarios.js"></script>
+<script src="js/recorder.js"></script>
+<script src="js/app.js"></script>
+<script src="js/admin.js"></script>
+<style>
+  /* Demo: 1) admin console, 2) the two phones of one session, 3) the utterance sheet that gets saved. */
+  html, body { min-height: 100%; }
+  .demo { max-width: 1100px; margin: 0 auto; padding-block: 18px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: flex; flex-direction: column; gap: 18px; }
+  .demo > header h1 { font-size: 1.45rem; margin: 0 0 4px; text-wrap: balance; }
+  .demo > header p { margin: 0; color: var(--muted); max-width: 72ch; }
+  .step { font-size: .72rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin: 6px 0 -8px; }
+  .demo .adm { padding: 0; max-width: none; }
+  .demo .adm header { display: none; }
+  .phonesbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .phonesbar h2 { margin: 0; flex: 1; min-width: 200px; }
+  .tabs { display: none; gap: 6px; }
+  .tabs button { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 999px; padding: 7px 13px; font-weight: 700; cursor: pointer; }
+  .tabs button.on { border-color: var(--user); color: var(--user); }
+  .tabs button .turn { display: none; margin-left: 4px; color: var(--rec); }
+  .tabs button.turn-now .turn { display: inline; }
+  .phones { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .phonewrap { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .phonewrap .cap { font-weight: 700; display: flex; gap: 8px; align-items: center; }
+  .phonewrap .cap .now { font-size: .72rem; color: var(--rec); text-transform: uppercase; letter-spacing: .06em; }
+  .frame { height: 680px; overflow: auto; border-radius: 28px; border: 8px solid var(--ink); background: var(--bg); box-shadow: var(--shadow); overscroll-behavior: contain; }
+  .frame .pp { min-height: 100%; }
+  .saved .tbl { overflow-x: auto; }
+  .saved code { font-family: var(--mono); font-size: .74rem; }
+  .pill { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .pill.user { background: var(--user-soft); color: var(--user); } .pill.assistant { background: var(--phone-soft); color: var(--phone); }
+  .saved .empty-tr { color: var(--muted); font-style: italic; }
+  .play { appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 3px 8px; cursor: pointer; }
+  @media (max-width: 860px) {
+    .tabs { display: flex; }
+    .phones { grid-template-columns: 1fr; }
+    .phonewrap { display: none; } .phonewrap.show { display: flex; }
+    .phonewrap .cap { display: none; }
+    .frame { height: 620px; border-width: 6px; }
+  }
+</style>
+
+<div class="demo">
+  <header>
+    <h1>Pashto Pair Sessions · demo</h1>
+    <p>Try the whole flow before deploying. As admin you create 1:1 sessions; each person opens their own link, types a name, and the two take turns. Screens are in Roman Urdu; speakers speak Pashto. Nothing leaves this page.</p>
+    <p class="banner" id="micnote" hidden>This preview is not allowed to use your microphone, so each recording plays soft beeps instead of a voice. On the real platform, and when you open <code>web/demo.html</code> from the package in Chrome, it records your actual voice.</p>
+  </header>
+
+  <div class="step">1 · Admin console</div>
+  <div class="adm">
+    <header></header>
+    <section class="panel">
+      <div class="kpis">
+        <div><div class="small">Speech recorded</div><div class="stat"><span id="k-min">0</span> <span class="small">min</span></div></div>
+        <div><div class="small">Utterances</div><div class="stat" id="k-utt">0</div></div>
+        <div><div class="small">Still to transcribe</div><div class="stat" id="k-todo">0</div></div>
+        <div><div class="small">Sessions</div><div class="stat" id="k-ses">0</div></div>
+      </div>
+    </section>
+    <section class="panel">
+      <h2>New sessions</h2>
+      <p class="small">Each session is two people with two personal links. Sessions stay active: the same two links keep working on any day, and the pair continues where they stopped.</p>
+      <div class="newrow"><label for="cnt">How many</label><select id="cnt"><option>1</option><option>2</option><option>3</option><option>5</option></select>
+        <label for="note">Private note</label><input id="note" placeholder="e.g. Quetta, Saturday" maxlength="100">
+        <button class="btn primary" id="create">Create</button></div>
+      <div id="newlinks" class="linkgrid"></div>
+    </section>
+    <section class="panel">
+      <div class="row2"><h2 style="margin:0">Sessions</h2><div style="text-align:right"><button class="btn" id="refresh">Refresh</button></div></div>
+      <div class="tbl"><table><thead><tr><th>Session</th><th>Person</th><th>Online</th><th class="n">Dialogue</th><th class="n">Utterances</th><th class="n">Minutes</th><th>Link</th></tr></thead><tbody id="rows"></tbody></table></div>
+    </section>
+  </div>
+
+  <div class="step">2 · The two phones</div>
+  <div class="phonesbar">
+    <h2 id="phTitle">Session S01</h2>
+    <div class="tabs" id="tabs"><button data-p="a" class="on">Person A<span class="turn">● baari</span></button><button data-p="b">Person B<span class="turn">● baari</span></button></div>
+    <label class="small" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="follow" checked> Jump to whoever’s turn it is</label>
+  </div>
+  <div class="phones">
+    <div class="phonewrap show" id="w-a"><div class="cap">Person A’s phone <span class="now" id="now-a"></span></div><div class="frame"><div id="ph-a"></div></div></div>
+    <div class="phonewrap" id="w-b"><div class="cap">Person B’s phone <span class="now" id="now-b"></span></div><div class="frame"><div id="ph-b"></div></div></div>
+  </div>
+
+  <div class="step">3 · What gets saved</div>
+  <section class="panel saved">
+    <h2>Utterance sheet</h2>
+    <p class="small">One row and one audio file per utterance, in speaking order, ready to transcribe. In the real platform this is the <b>utterances</b> tab of your Google Sheet; the audio sits in Google Drive under the same path. The transcriber fills the Pashto column.</p>
+    <div class="tbl"><table><thead><tr><th>utt_id</th><th>Role</th><th>Speaker</th><th>Audio</th><th class="n">Sec</th><th>transcript_pashto</th><th>intent_card</th><th>file_path</th></tr></thead><tbody id="saved"></tbody></table></div>
+  </section>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  const SC = window.PP_SCEN;
+  const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const pad = (n, w) => String(n).padStart(w, '0');
+  const wait = (v) => new Promise((r) => setTimeout(() => r(v), 100));
+
+  // ---------------------------------------------------------- in-page stand-in for the Google backend
+  const DB = { sessions: [], utts: [], nSpk: 0 };
+  let openSid = null, uis = [];
+  const S = (sid) => DB.sessions.find((s) => s.session_id === sid);
+  const view = (s) => Object.assign({}, s.st, { a_online: openSid === s.session_id, b_online: openSid === s.session_id });
+
+  function newSessions(count, note) {
+    const out = [];
+    for (let i = 0; i < count; i++) {
+      const sid = 'S' + pad(DB.sessions.length + 1, 2);
+      const people = ['a', 'b'].map((slot) => ({ speaker_id: 'SPK' + pad(++DB.nSpk, 3), key: sid + slot + Math.random().toString(36).slice(2, 8), slot: slot, name: '' }));
+      DB.sessions.push({ session_id: sid, note: note || '', people: people, st: { d: 0, t: 0, p: 0, q: 0, qt: 0, secs: 0, a_name: '', b_name: '' } });
+      out.push({ session_id: sid, people: people });
+    }
+    return out;
+  }
+
+  const adminCall = async (action, d) => {
+    if (action === 'a_new_sessions') return wait({ sessions: newSessions(d.count, d.note) });
+    if (action === 'a_overview') return wait({ sessions: DB.sessions.map((s) => {
+      const u = DB.utts.filter((x) => x.session_id === s.session_id);
+      return { session_id: s.session_id, note: s.note, dialogue: s.st.d + 1, utts: u.length, secs: u.reduce((a, x) => a + x.duration_s, 0), todo: u.length,
+        people: s.people.map((p) => ({ speaker_id: p.speaker_id, slot: p.slot, key: p.key, name: s.st[p.slot + '_name'], online: openSid === s.session_id })) };
+    }) });
+  };
+
+  function transport(sid, slot) {
+    const ses = S(sid); const st = ses.st; const me = ses.people.find((p) => p.slot === slot);
+    return {
+      join: () => wait({ me: slot, session_id: sid, speaker_id: me.speaker_id, state: view(ses) }),
+      poll: () => wait({ state: view(ses) }),
+      setName: (name) => { st[slot + '_name'] = name; changed(); return wait({ state: view(ses) }); },
+      upload: (x) => {
+        if (x.d !== st.d || x.t !== st.t || x.p !== st.p) return wait({ state: view(ses) });
+        const m = x.meta; const utt = sid + '-D' + pad(st.d + 1, 3) + '-T' + pad(st.t + 1, 2) + '-P' + (st.p + 1);
+        DB.utts.push({ utt_id: utt, session_id: sid, role: m.role, speaker: st[slot + '_name'] + ' (' + me.speaker_id + ')', url: x.url, duration_s: m.duration_s, intent: m.intent,
+          path: 'PashtoDialog_data/' + sid + '/D' + pad(st.d + 1, 3) + '_' + m.scenario_id + '/' + utt + '_' + (m.role === 'user' ? 'user' : 'phone') + '.wav' });
+        st.secs += m.duration_s;
+        if (x.keep) st.p += 1; else { st.p = 0; st.t += 1; if (x.n && st.t >= x.n) { st.d += 1; st.t = 0; st.q = 0; st.qt = 0; } }
+        changed(); return wait({ state: view(ses) });
+      },
+      nextQ: (x) => { if (x.d === st.d && x.q === st.q) { st.q += 1; st.qt = st.t; } changed(); return wait({ state: view(ses) }); },
+      finish: (x) => { if (x.d === st.d) { st.d += 1; st.t = 0; st.p = 0; st.q = 0; st.qt = 0; } changed(); return wait({ state: view(ses) }); }
+    };
+  }
+
+  // ---------------------------------------------------------- page wiring
+  function whoseTurn() {
+    const ses = S(openSid); if (!ses) return 'a'; const st = ses.st;
+    if (!st.a_name) return 'a'; if (!st.b_name) return 'b';
+    const q = SC.buildQueue(openSid); const it = q[Math.min(st.d, q.length - 1)];
+    return SC.stepFor(SC.buildInstance(openSid, it.scenario_id, it.round), st.d, st.t, st.q, st.qt).owner;
+  }
+  function showPhone(p) {
+    document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.p === p));
+    document.getElementById('w-a').classList.toggle('show', p === 'a');
+    document.getElementById('w-b').classList.toggle('show', p === 'b');
+  }
+  document.querySelectorAll('#tabs button').forEach((b) => b.onclick = () => { document.getElementById('follow').checked = false; showPhone(b.dataset.p); });
+
+  function changed() {
+    const ses = S(openSid);
+    setTimeout(() => uis.forEach((u) => { if (u.mode === 'idle' && ses) u.apply(view(ses), true); }), 0);
+    const w = whoseTurn();
+    ['a', 'b'].forEach((p) => {
+      document.getElementById('now-' + p).textContent = w === p ? '● speaking now' : '';
+      document.querySelector('#tabs [data-p="' + p + '"]').classList.toggle('turn-now', w === p);
+    });
+    if (document.getElementById('follow').checked) showPhone(w);
+    renderSaved(); if (admin) admin.load();
+  }
+
+  function renderSaved() {
+    const tb = document.getElementById('saved');
+    if (!DB.utts.length) { tb.innerHTML = '<tr><td colspan="8" class="small">Nothing yet. Type both names, then record the first turn.</td></tr>'; return; }
+    tb.innerHTML = DB.utts.map((u, i) => '<tr><td><code>' + esc(u.utt_id) + '</code></td><td><span class="pill ' + u.role + '">' + (u.role === 'user' ? 'user' : 'phone') + '</span></td><td>' + esc(u.speaker) + '</td>' +
+      '<td><button class="play" data-i="' + i + '" aria-label="Play">▶</button></td><td class="n">' + u.duration_s.toFixed(1) + '</td><td class="empty-tr">to transcribe</td><td><code>' + esc(u.intent || '—') + '</code></td><td><code>' + esc(u.path) + '</code></td></tr>').join('');
+    tb.querySelectorAll('.play').forEach((b) => b.onclick = () => { new Audio(DB.utts[+b.dataset.i].url).play().catch(() => {}); });
+  }
+
+  function openSession(sid) {
+    uis.forEach((u) => u.destroy()); uis = [];
+    openSid = sid; document.getElementById('phTitle').textContent = 'Session ' + sid;
+    ['a', 'b'].forEach((p) => { const el = document.getElementById('ph-' + p); el.className = ''; el.innerHTML = ''; });
+    uis = ['a', 'b'].map((p) => new PhoneUI(document.getElementById('ph-' + p), transport(sid, p), { allowFake: true, pollMs: 700, maxTurnS: 180 }));
+    showPhone('a'); changed();
+  }
+
+  // Tell the viewer up front when this page cannot reach a microphone (recordings will be beeps).
+  (async () => {
+    let ok = false;
+    try { const st = await navigator.mediaDevices.getUserMedia({ audio: true }); st.getTracks().forEach((t) => t.stop()); ok = true; } catch (e) { ok = false; }
+    document.getElementById('micnote').hidden = ok;
+  })();
+
+  newSessions(1, 'Demo');
+  const admin = AdminUI({ call: adminCall, linkFor: (k) => 'https://<your-site>/index.html?k=' + k, refreshMs: 0, onOpen: (s) => { openSession(s.session_id); document.getElementById('phTitle').scrollIntoView({ behavior: 'smooth' }); } });
+  openSession('S01');
+})();
+</script>
+
+</body>
+</html>

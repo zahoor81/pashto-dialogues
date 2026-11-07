@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ur">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pashto Pair Dialogues</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<style>html, body { height: 100%; } #app { min-height: 100%; max-width: 560px; margin: 0 auto; }</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="js/config.js"></script>
+<script src="js/scenarios.js"></script>
+<script src="js/recorder.js"></script>
+<script src="js/app.js"></script>
+<script>
+(function () {
+  'use strict';
+  const k = new URLSearchParams(location.search).get('k') || '';
+  const root = document.getElementById('app');
+  if (!k) { root.innerHTML = '<div style="padding:24px"><h2>Link adhoora hai</h2><p>Researcher ka bheja hua poora link kholein.</p></div>'; return; }
+  const transport = {
+    join: () => ppCall('join', { k: k }),
+    poll: () => ppCall('poll', { k: k }),
+    setName: (name) => ppCall('name', { k: k, name: name }),
+    upload: (x) => ppCall('upload', { k: k, d: x.d, t: x.t, p: x.p, n: x.n, keep: x.keep, meta: x.meta, b64: x.b64 }),
+    nextQ: (x) => ppCall('nextq', { k: k, d: x.d, q: x.q }),
+    finish: (x) => ppCall('finish', { k: k, d: x.d, status: x.status, instance_id: x.instance_id, scenario_id: x.scenario_id })
+  };
+  new PhoneUI(root, transport, { pollMs: PP_CONFIG.POLL_MS, maxTurnS: PP_CONFIG.MAX_TURN_S });
+})();
+</script>
+</body>
+</html>

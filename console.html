@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pair Session Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+<link rel="stylesheet" href="css/admin.css">
+</head>
+<body>
+<div class="adm">
+  <header><h1>Pair Session Console</h1><div class="small">Create 1:1 sessions, send each person their link, and watch recordings come in.</div></header>
+  <section class="panel">
+    <div class="kpis">
+      <div><div class="small">Speech recorded</div><div class="stat"><span id="k-min">0</span> <span class="small">min</span></div></div>
+      <div><div class="small">Utterances</div><div class="stat" id="k-utt">0</div></div>
+      <div><div class="small">Still to transcribe</div><div class="stat" id="k-todo">0</div></div>
+      <div><div class="small">Sessions</div><div class="stat" id="k-ses">0</div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>New sessions</h2>
+    <p class="small">Each session is two people with two personal links. Sessions stay active: the same two links keep working on any day, and the pair continues where they stopped.</p>
+    <div class="newrow"><label for="cnt">How many</label><select id="cnt"><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option></select>
+      <label for="note">Private note (optional)</label><input id="note" placeholder="e.g. Quetta, Saturday" maxlength="100">
+      <button class="btn primary" id="create">Create</button></div>
+    <div id="newlinks" class="linkgrid"></div>
+  </section>
+  <section class="panel">
+    <div class="row2"><h2 style="margin:0">Sessions</h2><div style="text-align:right"><button class="btn" id="refresh">Refresh</button></div></div>
+    <div class="tbl"><table><thead><tr><th>Session</th><th>Person</th><th>Online</th><th class="n">Dialogue</th><th class="n">Utterances</th><th class="n">Minutes</th><th>Link</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <p class="small">Transcription happens in the Google Sheet <b>utterances</b> tab: one row per utterance in speaking order, with its audio link and an empty <b>transcript_pashto</b> column.</p>
+  </section>
+</div>
+<script src="js/config.js"></script>
+<script src="js/admin.js"></script>
+<script>
+(function () {
+  const qs = new URLSearchParams(location.search);
+  let ADMIN = qs.get('admin') || '';
+  try { if (ADMIN) sessionStorage.setItem('pp_admin', ADMIN); else ADMIN = sessionStorage.getItem('pp_admin') || ''; } catch (e) { /* ignore */ }
+  if (qs.get('admin')) history.replaceState(null, '', location.pathname);
+  if (!ADMIN) ADMIN = window.prompt('Admin key (shown by setup() in Apps Script):') || '';
+  const base = location.href.split('?')[0].replace(/console\.html$/, '');
+  AdminUI({ call: (a, d) => ppCall(a, Object.assign({ admin: ADMIN }, d || {})), linkFor: (k) => base + 'index.html?k=' + encodeURIComponent(k), refreshMs: 10000 });
+})();
+</script>
+</body>
+</html>
