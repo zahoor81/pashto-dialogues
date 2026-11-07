@@ -1,7 +1,7 @@
 // Pashto Pair Dialogues — settings.
 // Paste the Apps Script Web-app URL here after deploying the backend (see SETUP.md).
 window.PP_CONFIG = {
-  API_URL: '',               // e.g. 'https://script.google.com/macros/s/AKfy.../exec'
+  API_URL: 'https://script.google.com/macros/s/AKfycbwhkTHeyTmS1DWXxeS5gXgoMxeLytFklLPIc8Qhp2hkquYi3v_-ykipIRp524kxJC-6/exec',               // e.g. 'https://script.google.com/macros/s/AKfy.../exec'
   POLL_MS: 2500,             // how often each phone checks whose turn it is
   MAX_TURN_S: 180,           // one recording is cut at 3 min; the speaker can carry on with a new part
   TARGET_USER_MIN: 300       // dataset goal: 5 h of USER-side speech
